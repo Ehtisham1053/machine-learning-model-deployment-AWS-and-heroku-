@@ -7,6 +7,8 @@ import numpy as np
 
 application = Flask(__name__)
 
+
+
 # Load the preprocessor and model from the artifacts folder
 artifacts_dir = 'artifacts'
 with open(os.path.join(artifacts_dir, 'preprocessor.pkl'), 'rb') as f:
@@ -57,4 +59,4 @@ def predict():
         return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
-    application.run(debug=True)
+    application.run(host="0.0.0.0")
