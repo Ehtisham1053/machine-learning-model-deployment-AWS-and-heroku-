@@ -1,72 +1,63 @@
-import os 
-import sys 
+import os
+import sys
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from src.exception import Custom_exception_handling
 from src.logger import logging
 from dataclasses import dataclass
 
-
-# from src.compnent.data_transformation import DataTransformation
-# from src.compnent.data_transformation import DataTransformationConfig
-
-# from src.compnent.model_training import ModelTrainer
-# from src.compnent.model_training import ModelTrainerConfig
+from src.component.data_tranformation import DataTransformation
+from src.component.model_training import ModelTrainer
 
 
 
-# path for saving  the test , train and raw data 
 @dataclass
 class DataIngestionConfig:
-    train_data_path: str=os.path.join('artifacts',"train.csv")
-    test_data_path: str=os.path.join('artifacts',"test.csv")
-    raw_data_path: str=os.path.join('artifacts',"data.csv")
-
+    raw_data_path: str = os.path.join("artifacts", "raw_data.csv")
 
 class DataIngestion:
     def __init__(self):
-        self.ingestion_config=DataIngestionConfig()
+        self.ingestion_config = DataIngestionConfig()
 
     def initiate_data_ingestion(self):
         logging.info("Entered the data ingestion method or component")
         try:
-            # this first line we can change whenever we are reading the data from any source 
-            df=pd.read_csv('dataset\magic04.data')
+            # Read the dataset from the specified path
+            df = pd.read_csv('dataset/magic04.data')
             logging.info('Read the dataset as dataframe')
 
-            os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok=True)
+            # Ensure the artifacts directory exists
+            os.makedirs(os.path.dirname(self.ingestion_config.raw_data_path), exist_ok=True)
 
-            df.to_csv(self.ingestion_config.raw_data_path,index=False,header=True)
-            # now train and test data split is completed
-            logging.info("Train test split initiated")
-            train_set,test_set=train_test_split(df,test_size=0.2,random_state=42)
+            # Save the entire dataset to the artifacts folder
+            df.to_csv(self.ingestion_config.raw_data_path, index=False, header=True)
 
-            train_set.to_csv(self.ingestion_config.train_data_path,index=False,header=True)
+            logging.info("Data ingestion completed successfully")
 
-            test_set.to_csv(self.ingestion_config.test_data_path,index=False,header=True)
+            return self.ingestion_config.raw_data_path
 
-            logging.info("ingestion of the data is completed")
-
-            return(
-                self.ingestion_config.train_data_path,
-                self.ingestion_config.test_data_path
-                # this return is for the data transformation part
-
-            )
         except Exception as e:
-            raise Custom_exception_handling(e,sys)
-        
+            raise Custom_exception_handling(e, sys)
 
 
-if __name__=="__main__":
-    obj=DataIngestion()
-    train_data,test_data=obj.initiate_data_ingestion()
 
-    # data transformation and creation on pkl file
+if __name__ == "__main__":
+    obj = DataIngestion()
+    raw_data_path = obj.initiate_data_ingestion()
 
+    # Load the data into a DataFrame
+    df = pd.read_csv(raw_data_path)
 
-    # # model training and returing of the accuracy
+    # Perform data transformation
+    data_transformation = DataTransformation()
+    train_data, test_data = data_transformation.initiate_data_transformation(df)
 
+    # Model training
+    train_features = ['fLength', 'fWidth', 'fSize', 'fConc', 'fConc1', 'fAsym', 'fM3Long', 'fM3Trans', 'fAlpha', 'fDist']
+    target_column = 'class'
+
+    model_trainer = ModelTrainer()
+    accuracy = model_trainer.initiate_model_trainer(train_data, test_data, train_features, target_column)
+    print(f"Model accuracy: {accuracy:.2f}%")
 
 
 
