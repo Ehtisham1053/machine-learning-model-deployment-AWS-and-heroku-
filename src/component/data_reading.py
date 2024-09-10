@@ -1,63 +1,75 @@
-import os
-import sys
+# save_model.py
+
+import numpy as np
 import pandas as pd
-from src.exception import Custom_exception_handling
-from src.logger import logging
-from dataclasses import dataclass
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+import pickle
+import os
 
-from src.component.data_tranformation import DataTransformation
-from src.component.model_training import ModelTrainer
+# Ensure that the artifacts folder exists
+artifacts_dir = 'artifacts'
+if not os.path.exists(artifacts_dir):
+    os.makedirs(artifacts_dir)
 
+# Load the dataset
+df = pd.read_csv(r'dataset\magic04.data')
+df.columns = ['fLength', 'fWidth', 'fSize', 'fConc', 'fConc1', 'fAsym', 'fM3Long', 'fM3Trans', 'fAlpha', 'fDist', 'class']
+df['class'].replace({'g': 0, 'h': 1}, inplace=True)
 
+# Split the data into features and target
+x = df.drop('class', axis=1)
+y = df['class']
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
 
-@dataclass
-class DataIngestionConfig:
-    raw_data_path: str = os.path.join("artifacts", "raw_data.csv")
+# Data transformation (scaling and oversampling)
+def preprocess_data(x_train, x_test):
+    scaler = StandardScaler()
+    x_train_scaled = scaler.fit_transform(x_train)
+    x_test_scaled = scaler.transform(x_test)
 
-class DataIngestion:
-    def __init__(self):
-        self.ingestion_config = DataIngestionConfig()
+    # Oversample the training data
+    ros = RandomOverSampler()
+    x_train_resampled, y_train_resampled = ros.fit_resample(x_train_scaled, y_train)
 
-    def initiate_data_ingestion(self):
-        logging.info("Entered the data ingestion method or component")
-        try:
-            # Read the dataset from the specified path
-            df = pd.read_csv('dataset/magic04.data')
-            logging.info('Read the dataset as dataframe')
+    # Save the preprocessor (scaler and resampler) in the artifacts folder
+    with open(os.path.join(artifacts_dir, 'preprocessor.pkl'), 'wb') as f:
+        pickle.dump({'scaler': scaler, 'ros': ros}, f)
 
-            # Ensure the artifacts directory exists
-            os.makedirs(os.path.dirname(self.ingestion_config.raw_data_path), exist_ok=True)
+    return x_train_resampled, x_test_scaled, y_train_resampled
 
-            # Save the entire dataset to the artifacts folder
-            df.to_csv(self.ingestion_config.raw_data_path, index=False, header=True)
+# Preprocess the data
+x_train_resampled, x_test_scaled, y_train_resampled = preprocess_data(x_train, x_test)
 
-            logging.info("Data ingestion completed successfully")
+# Build and train the RandomForest model
+model = RandomForestClassifier(max_depth=None, min_samples_leaf=1, min_samples_split=2, n_estimators=200)
+model.fit(x_train_resampled, y_train_resampled)
 
-            return self.ingestion_config.raw_data_path
+# Save the trained model in the artifacts folder
+with open(os.path.join(artifacts_dir, 'model.pkl'), 'wb') as f:
+    pickle.dump(model, f)
 
-        except Exception as e:
-            raise Custom_exception_handling(e, sys)
+# Evaluate the model on the test data
+y_pred = model.predict(x_test_scaled)
+print(classification_report(y_test, y_pred))
 
+# Plot confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(4, 2))
+sns.heatmap(cm, annot=True, fmt='d')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.show()
 
-
-if __name__ == "__main__":
-    obj = DataIngestion()
-    raw_data_path = obj.initiate_data_ingestion()
-
-    # Load the data into a DataFrame
-    df = pd.read_csv(raw_data_path)
-
-    # Perform data transformation
-    data_transformation = DataTransformation()
-    train_data, test_data = data_transformation.initiate_data_transformation(df)
-
-    # Model training
-    train_features = ['fLength', 'fWidth', 'fSize', 'fConc', 'fConc1', 'fAsym', 'fM3Long', 'fM3Trans', 'fAlpha', 'fDist']
-    target_column = 'class'
-
-    model_trainer = ModelTrainer()
-    accuracy = model_trainer.initiate_model_trainer(train_data, test_data, train_features, target_column)
-    print(f"Model accuracy: {accuracy:.2f}%")
-
-
-
+# Print confusion matrix values
+tn, fp, fn, tp = cm.ravel()
+print(f'True Positive: {tp}')
+print(f'True Negative: {tn}')
+print(f'False Positive: {fp}')
+print(f'False Negative: {fn}')

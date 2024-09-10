@@ -1,0 +1,55 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Price Prediction</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Predict Flight Class</h1>
+        <form action="/predict" method="POST">
+            <label for="fLength">Flight Length</label>
+            <input type="number" step="0.01" name="fLength" required>
+
+            <label for="fWidth">Flight Width</label>
+            <input type="number" step="0.01" name="fWidth" required>
+
+            <label for="fSize">Flight Size</label>
+            <input type="number" step="0.01" name="fSize" required>
+
+            <label for="fConc">Flight Conc</label>
+            <input type="number" step="0.01" name="fConc" required>
+
+            <label for="fConc1">Flight Conc1</label>
+            <input type="number" step="0.01" name="fConc1" required>
+
+            <label for="fAsym">Flight Asymmetry</label>
+            <input type="number" step="0.01" name="fAsym" required>
+
+            <label for="fM3Long">Flight M3 Long</label>
+            <input type="number" step="0.01" name="fM3Long" required>
+
+            <label for="fM3Trans">Flight M3 Trans</label>
+            <input type="number" step="0.01" name="fM3Trans" required>
+
+            <label for="fAlpha">Flight Alpha</label>
+            <input type="number" step="0.01" name="fAlpha" required>
+
+            <label for="fDist">Flight Distance</label>
+            <input type="number" step="0.01" name="fDist" required>
+
+            <button type="submit">Predict Class</button>
+        </form>
+
+        {% if prediction_text %}
+        <div class="result">
+            <h2>{{ prediction_text }}</h2>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
